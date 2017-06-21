@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
 using Microsoft.Azure.Management.AppService.Fluent;
@@ -58,9 +58,12 @@ namespace ManageFunctionAppSourceControl
                 Utilities.Log("Deploying a function app to " + app1Name + " through FTP...");
 
                 IPublishingProfile profile = app1.GetPublishingProfile();
-                Utilities.UploadFileToFtp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "host.json"));
-                Utilities.UploadFileToFtp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "function.json"), "square/function.json");
-                Utilities.UploadFileToFtp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "index.js"), "square/index.js");
+                Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "host.json"));
+                Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "function.json"), "square/function.json");
+                Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "index.js"), "square/index.js");
+
+                // sync triggers
+                app1.SyncTriggers();
 
                 Utilities.Log("Deployment square app to web app " + app1.Name + " completed");
                 Utilities.Print(app1);
