@@ -1,0 +1,4 @@
+C:\Sources\dotnet-samples\app-service-dotnet-configure-deployment-sources-for-functions\bin\Debug\net452\ManageFunctionAppSourceControl.runtimeconfig.json
+C:\Sources\dotnet-samples\app-service-dotnet-configure-deployment-sources-for-functions\bin\Debug\net452\ManageFunctionAppSourceControl.runtimeconfig.dev.json
+C:\Sources\dotnet-samples\app-service-dotnet-configure-deployment-sources-for-functions\obj\Debug\net452\ManageFunctionAppSourceControl.csproj.ManageFunctionAppSourceControl.exe.config
+C:\Sources\dotnet-samples\app-service-dotnet-configure-deployment-sources-for-functions\obj\Debug\net452\ManageFunctionAppSourceControl.csproj.CoreCompileInputs.cache

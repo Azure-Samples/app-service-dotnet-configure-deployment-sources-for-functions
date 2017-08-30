@@ -1,0 +1,2 @@
+C:\Sources\dotnet-samples\app-service-dotnet-configure-deployment-sources-for-functions\bin\Debug\netstandard1.6\ManageFunctionAppSourceControl.deps.json
+C:\Sources\dotnet-samples\app-service-dotnet-configure-deployment-sources-for-functions\obj\Debug\netstandard1.6\ManageFunctionAppSourceControl.csproj.CoreCompileInputs.cache

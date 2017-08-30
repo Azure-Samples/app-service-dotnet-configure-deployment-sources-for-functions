@@ -7,11 +7,12 @@ author: jianghaolu
 # Getting Started with App - Manage Function App Source Control - in .Net #
 
           Azure App Service basic sample for managing function apps.
-           - Create 4 function apps under the same new app service plan:
+           - Create 5 function apps under the same new app service plan:
              - Deploy to 1 using FTP
              - Deploy to 2 using local Git repository
              - Deploy to 3 using a publicly available Git repository
              - Deploy to 4 using a GitHub repository with continuous integration
+             - Deploy to 5 using web deploy
 
 
 ## Running this Sample ##
