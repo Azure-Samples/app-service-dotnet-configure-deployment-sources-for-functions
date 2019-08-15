@@ -4,20 +4,20 @@ languages:
 - csharp
 products:
 - azure
-services: App-Service
-platforms: dotnet
-author: yaohaizh
+extensions:
+- services: App-Service
+- platforms: dotnet
 ---
 
 # Getting started on configuring deployment sources for Functions using C# #
 
-          Azure App Service basic sample for managing function apps.
-           - Create 5 function apps under the same new app service plan:
-             - Deploy to 1 using FTP
-             - Deploy to 2 using local Git repository
-             - Deploy to 3 using a publicly available Git repository
-             - Deploy to 4 using a GitHub repository with continuous integration
-             - Deploy to 5 using web deploy
+ Azure App Service basic sample for managing function apps.
+  - Create 5 function apps under the same new app service plan:
+    - Deploy to 1 using FTP
+    - Deploy to 2 using local Git repository
+    - Deploy to 3 using a publicly available Git repository
+    - Deploy to 4 using a GitHub repository with continuous integration
+    - Deploy to 5 using web deploy
 
 
 ## Running this Sample ##
