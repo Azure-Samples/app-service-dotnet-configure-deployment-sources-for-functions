@@ -5,8 +5,8 @@ languages:
 products:
 - azure
 extensions:
-- services: App-Service
-- platforms: dotnet
+  services: App-Service
+  platforms: dotnet
 ---
 
 # Getting started on configuring deployment sources for Functions using C# #
