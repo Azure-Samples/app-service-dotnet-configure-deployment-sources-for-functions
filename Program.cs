@@ -1,13 +1,25 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
+using Azure.ResourceManager.KeyVault;
+using Azure.ResourceManager.AppService;
+using Azure.ResourceManager.CosmosDB;
+using Azure.ResourceManager.CosmosDB.Models;
+using Azure.ResourceManager;
+using Azure.Core;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
+using Microsoft.Rest.Azure.Authentication;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading;
 using Microsoft.Azure.Management.AppService.Fluent;
 using Microsoft.Azure.Management.Fluent;
 using Microsoft.Azure.Management.ResourceManager.Fluent;
 using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
 using Microsoft.Azure.Management.Samples.Common;
-using System;
-using System.IO;
+using Azure.ResourceManager.Resources;
 
 namespace ManageFunctionAppSourceControl
 {
@@ -23,10 +35,12 @@ namespace ManageFunctionAppSourceControl
          *    - Deploy to 5 using web deploy
          */
 
-        public static void RunSample(IAzure azure)
+        public static void RunSample(ArmClient client)
         {
             // New resources
+            AzureLocation region = AzureLocation.EastUS;
             string suffix         = ".azurewebsites.net";
+            string appName        = SdkContext.RandomResourceName("webapp1-", 20);
             string app1Name       = SdkContext.RandomResourceName("webapp1-", 20);
             string app2Name       = SdkContext.RandomResourceName("webapp2-", 20);
             string app3Name       = SdkContext.RandomResourceName("webapp3-", 20);
@@ -38,7 +52,8 @@ namespace ManageFunctionAppSourceControl
             string app4Url        = app4Name + suffix;
             string app5Url        = app5Name + suffix;
             string rgName         = SdkContext.RandomResourceName("rg1NEMV_", 24);
-
+            var lro = client.GetDefaultSubscription().GetResourceGroups().CreateOrUpdate(Azure.WaitUntil.Completed, rgName, new ResourceGroupData(AzureLocation.EastUS));
+            var resourceGroup = lro.Value;
             try {
 
 
@@ -46,6 +61,23 @@ namespace ManageFunctionAppSourceControl
                 // Create a function app with a new app service plan
 
                 Utilities.Log("Creating function app " + app1Name + " in resource group " + rgName + "...");
+
+                var webSiteCollection = resourceGroup.GetWebSites();
+                var webSiteData = new WebSiteData(region)
+                {
+                    SiteConfig = new Azure.ResourceManager.AppService.Models.SiteConfigProperties()
+                    {
+                        WindowsFxVersion = "PricingTier.StandardS1",
+                        NetFrameworkVersion = "NetFrameworkVersion.V4_6",
+                    }
+                };
+                var webSite_lro = webSiteCollection.CreateOrUpdate(Azure.WaitUntil.Completed, app1Name, webSiteData);
+                var webSite = webSite_lro.Value;
+                SiteFunctionCollection functionAppCollection = webSite.GetSiteFunctions();
+                var functionData = new FunctionEnvelopeData()
+                {
+                };
+                var funtion_lro = functionAppCollection.CreateOrUpdate(Azure.WaitUntil.Completed, app1Name, functionData);
 
                 IFunctionApp app1 = azure.AppServices.FunctionApps.Define(app1Name)
                         .WithRegion(Region.USWest)
@@ -215,17 +247,13 @@ namespace ManageFunctionAppSourceControl
                 //=================================================================
                 // Authenticate
                 var credentials = SdkContext.AzureCredentialsFactory.FromFile(Environment.GetEnvironmentVariable("AZURE_AUTH_LOCATION"));
-
-                var azure = Azure
-                    .Configure()
-                    .WithLogLevel(HttpLoggingDelegatingHandler.Level.Basic)
-                    .Authenticate(credentials)
-                    .WithDefaultSubscription();
+                var tokenCredential = new ClientCredential
+                var client = new ArmClient(null, "db1ab6f0-4769-4b27-930e-01e2ef9c123c");
 
                 // Print selected subscription
                 Utilities.Log("Selected subscription: " + azure.SubscriptionId);
 
-                RunSample(azure);
+                RunSample(client);
             }
             catch (Exception e)
             {
