@@ -71,28 +71,24 @@ namespace ManageFunctionAppSourceControl
                         NetFrameworkVersion = "NetFrameworkVersion.V4_6",
                     }
                 };
-                var webSite_lro = webSiteCollection.CreateOrUpdate(Azure.WaitUntil.Completed, app1Name, webSiteData);
+                var webSite_lro = webSiteCollection.CreateOrUpdate(Azure.WaitUntil.Completed, appName, webSiteData);
                 var webSite = webSite_lro.Value;
                 SiteFunctionCollection functionAppCollection = webSite.GetSiteFunctions();
                 var functionData = new FunctionEnvelopeData()
                 {
                 };
                 var funtion_lro = functionAppCollection.CreateOrUpdate(Azure.WaitUntil.Completed, app1Name, functionData);
+                var function = funtion_lro.Value;
 
-                IFunctionApp app1 = azure.AppServices.FunctionApps.Define(app1Name)
-                        .WithRegion(Region.USWest)
-                        .WithNewResourceGroup(rgName)
-                        .Create();
-
-                Utilities.Log("Created function app " + app1.Name);
-                Utilities.Print(app1);
+                Utilities.Log("Created function app " + function.Data.Name);
+                Utilities.Print(function.t);
 
                 //============================================================
                 // Deploy to app 1 through FTP
 
                 Utilities.Log("Deploying a function app to " + app1Name + " through FTP...");
 
-                IPublishingProfile profile = app1.GetPublishingProfile();
+                var profile = function.Data.;
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "host.json"));
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "function.json"), "square/function.json");
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "index.js"), "square/index.js");
@@ -226,7 +222,7 @@ namespace ManageFunctionAppSourceControl
                 try
                 {
                     Utilities.Log("Deleting Resource Group: " + rgName);
-                    azure.ResourceGroups.DeleteByName(rgName);
+                    resourceGroup.Delete(Azure.WaitUntil.Completed);
                     Utilities.Log("Deleted Resource Group: " + rgName);
                 }
                 catch (NullReferenceException)
