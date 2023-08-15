@@ -7,19 +7,15 @@ using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.CosmosDB.Models;
 using Azure.ResourceManager;
 using Azure.Core;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using Microsoft.Rest.Azure.Authentication;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using Microsoft.Azure.Management.AppService.Fluent;
-using Microsoft.Azure.Management.Fluent;
-using Microsoft.Azure.Management.ResourceManager.Fluent;
-using Microsoft.Azure.Management.ResourceManager.Fluent.Core;
 using Microsoft.Azure.Management.Samples.Common;
 using Azure.ResourceManager.Resources;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
+using System.Text;
 
 namespace ManageFunctionAppSourceControl
 {
@@ -40,18 +36,18 @@ namespace ManageFunctionAppSourceControl
             // New resources
             AzureLocation region = AzureLocation.EastUS;
             string suffix         = ".azurewebsites.net";
-            string appName        = SdkContext.RandomResourceName("webapp1-", 20);
-            string app1Name       = SdkContext.RandomResourceName("webapp1-", 20);
-            string app2Name       = SdkContext.RandomResourceName("webapp2-", 20);
-            string app3Name       = SdkContext.RandomResourceName("webapp3-", 20);
-            string app4Name       = SdkContext.RandomResourceName("webapp4-", 20);
-            string app5Name       = SdkContext.RandomResourceName("webapp5-", 20);
+            string appName        = Utilities.CreateRandomName("webapp1-");
+            string app1Name       = Utilities.CreateRandomName("webapp1-");
+            string app2Name       = Utilities.CreateRandomName("webapp2-");
+            string app3Name       = Utilities.CreateRandomName("webapp3-");
+            string app4Name       = Utilities.CreateRandomName("webapp4-");
+            string app5Name       = Utilities.CreateRandomName("webapp5-");
             string app1Url        = app1Name + suffix;
             string app2Url        = app2Name + suffix;
             string app3Url        = app3Name + suffix;
             string app4Url        = app4Name + suffix;
             string app5Url        = app5Name + suffix;
-            string rgName         = SdkContext.RandomResourceName("rg1NEMV_", 24);
+            string rgName         = Utilities.CreateRandomName("rg1NEMV_");
             var lro = client.GetDefaultSubscription().GetResourceGroups().CreateOrUpdate(Azure.WaitUntil.Completed, rgName, new ResourceGroupData(AzureLocation.EastUS));
             var resourceGroup = lro.Value;
             try {
@@ -73,6 +69,14 @@ namespace ManageFunctionAppSourceControl
                 };
                 var webSite_lro = webSiteCollection.CreateOrUpdate(Azure.WaitUntil.Completed, appName, webSiteData);
                 var webSite = webSite_lro.Value;
+
+                var planCollection = resourceGroup.GetWebSites();
+                var planData = new AppServicePlanData(region)
+                {
+                };
+                var planResource_lro = planCollection.CreateOrUpdate(Azure.WaitUntil.Completed, appName, webSiteData);
+                var planResource = planResource_lro.Value;
+
                 SiteFunctionCollection functionAppCollection = webSite.GetSiteFunctions();
                 var functionData = new FunctionEnvelopeData()
                 {
@@ -81,28 +85,28 @@ namespace ManageFunctionAppSourceControl
                 var function = funtion_lro.Value;
 
                 Utilities.Log("Created function app " + function.Data.Name);
-                Utilities.Print(function.t);
+                Utilities.Print(function);
 
                 //============================================================
                 // Deploy to app 1 through FTP
 
                 Utilities.Log("Deploying a function app to " + app1Name + " through FTP...");
 
-                var profile = function.Data.;
+                var profile = planResource.Data.HostingEnvironmentProfile;
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "host.json"));
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "function.json"), "square/function.json");
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "index.js"), "square/index.js");
 
                 // sync triggers
-                app1.SyncTriggers();
+                function.SyncTriggers();
 
-                Utilities.Log("Deployment square app to web app " + app1.Name + " completed");
+                Utilities.Log("Deployment square app to web app " + function.Data.Name + " completed");
                 Utilities.Print(app1);
 
                 // warm up
                 Utilities.Log("Warming up " + app1Url + "/api/square...");
                 Utilities.PostAddress("http://" + app1Url + "/api/square", "625");
-                SdkContext.DelayProvider.Delay(5000);
+                Thread.T(5000);
                 Utilities.Log("CURLing " + app1Url + "/api/square...");
                 Utilities.Log(Utilities.PostAddress("http://" + app1Url + "/api/square", "625"));
 
