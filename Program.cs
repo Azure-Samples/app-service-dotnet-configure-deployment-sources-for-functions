@@ -7,15 +7,20 @@ using Azure.ResourceManager.CosmosDB;
 using Azure.ResourceManager.CosmosDB.Models;
 using Azure.ResourceManager;
 using Azure.Core;
-using Microsoft.Azure.Management.Samples.Common;
+using Azure;
+using Azure.ResourceManager.Resources.Models;
+using Azure.Identity;
+using Azure.ResourceManager.Samples.Common;
 using Azure.ResourceManager.Resources;
 using System;
+using System.Threading;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace ManageFunctionAppSourceControl
 {
@@ -31,7 +36,7 @@ namespace ManageFunctionAppSourceControl
          *    - Deploy to 5 using web deploy
          */
 
-        public static void RunSample(ArmClient client)
+        public static async Task RunSample(ArmClient client)
         {
             // New resources
             AzureLocation region = AzureLocation.EastUS;
@@ -48,7 +53,7 @@ namespace ManageFunctionAppSourceControl
             string app4Url        = app4Name + suffix;
             string app5Url        = app5Name + suffix;
             string rgName         = Utilities.CreateRandomName("rg1NEMV_");
-            var lro = client.GetDefaultSubscription().GetResourceGroups().CreateOrUpdate(Azure.WaitUntil.Completed, rgName, new ResourceGroupData(AzureLocation.EastUS));
+            var lro = await client.GetDefaultSubscription().GetResourceGroups().CreateOrUpdateAsync(Azure.WaitUntil.Completed, rgName, new ResourceGroupData(AzureLocation.EastUS));
             var resourceGroup = lro.Value;
             try {
 
@@ -67,7 +72,7 @@ namespace ManageFunctionAppSourceControl
                         NetFrameworkVersion = "NetFrameworkVersion.V4_6",
                     }
                 };
-                var webSite_lro = webSiteCollection.CreateOrUpdate(Azure.WaitUntil.Completed, appName, webSiteData);
+                var webSite_lro =await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, appName, webSiteData);
                 var webSite = webSite_lro.Value;
 
                 var planCollection = resourceGroup.GetWebSites();
@@ -92,21 +97,21 @@ namespace ManageFunctionAppSourceControl
 
                 Utilities.Log("Deploying a function app to " + app1Name + " through FTP...");
 
-                var profile = planResource.Data.HostingEnvironmentProfile;
+                var profile = webSite.Data.HostingEnvironmentProfile;
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "host.json"));
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "function.json"), "square/function.json");
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "index.js"), "square/index.js");
 
                 // sync triggers
-                function.SyncTriggers();
+                webSite.SyncFunctionTriggers();
 
                 Utilities.Log("Deployment square app to web app " + function.Data.Name + " completed");
-                Utilities.Print(app1);
+                Utilities.Print(function);
 
                 // warm up
                 Utilities.Log("Warming up " + app1Url + "/api/square...");
                 Utilities.PostAddress("http://" + app1Url + "/api/square", "625");
-                Thread.T(5000);
+                Thread.Sleep(5000);
                 Utilities.Log("CURLing " + app1Url + "/api/square...");
                 Utilities.Log(Utilities.PostAddress("http://" + app1Url + "/api/square", "625"));
 
@@ -114,32 +119,38 @@ namespace ManageFunctionAppSourceControl
                 // Create a second function app with local git source control
 
                 Utilities.Log("Creating another function app " + app2Name + " in resource group " + rgName + "...");
-                IAppServicePlan plan = azure.AppServices.AppServicePlans.GetById(app1.AppServicePlanId);
-                IFunctionApp app2 = azure.AppServices.FunctionApps.Define(app2Name)
-                        .WithExistingAppServicePlan(plan)
-                        .WithExistingResourceGroup(rgName)
-                        .WithExistingStorageAccount(app1.StorageAccount)
-                        .WithLocalGitSourceControl()
-                        .Create();
+                var webSite2Collection = resourceGroup.GetWebSites();
+                var webSite2Data = new WebSiteData(region)
+                {
+                    SiteConfig = new Azure.ResourceManager.AppService.Models.SiteConfigProperties()
+                    {
+                        WindowsFxVersion = "PricingTier.StandardS1",
+                        NetFrameworkVersion = "NetFrameworkVersion.V4_6",
+                    },
+                    AppServicePlanId = planCollection.Id,
+                    IsStorageAccountRequired = true,
+                };
+                var webSite2_lro = webSiteCollection.CreateOrUpdate(Azure.WaitUntil.Completed, app2Name, webSiteData);
+                var webSite2 = webSite_lro.Value;
 
-                Utilities.Log("Created function app " + app2.Name);
-                Utilities.Print(app2);
+                Utilities.Log("Created function app " + webSite2.Data.Name);
+                Utilities.Print(webSite2);
 
                 //============================================================
                 // Deploy to app 2 through local Git
 
                 Utilities.Log("Deploying a local Tomcat source to " + app2Name + " through Git...");
 
-                profile = app2.GetPublishingProfile();
+                profile = webSite.Data.HostingEnvironmentProfile;
                 Utilities.DeployByGit(profile, "square-function-app");
 
-                Utilities.Log("Deployment to function app " + app2.Name + " completed");
-                Utilities.Print(app2);
+                Utilities.Log("Deployment to function app " + webSite2.Data.Name + " completed");
+                Utilities.Print(webSite2);
 
                 // warm up
                 Utilities.Log("Warming up " + app2Url + "/api/square...");
                 Utilities.PostAddress("http://" + app2Url + "/api/square", "725");
-                SdkContext.DelayProvider.Delay(5000);
+                Thread.Sleep(5000);
                 Utilities.Log("CURLing " + app2Url + "/api/square...");
                 Utilities.Log("Square of 725 is " + Utilities.PostAddress("http://" + app2Url + "/api/square", "725"));
 
@@ -147,23 +158,20 @@ namespace ManageFunctionAppSourceControl
                 // Create a 3rd function app with a public GitHub repo in Azure-Samples
 
                 Utilities.Log("Creating another function app " + app3Name + "...");
-                IFunctionApp app3 = azure.AppServices.FunctionApps.Define(app3Name)
-                        .WithExistingAppServicePlan(plan)
-                        .WithNewResourceGroup(rgName)
-                        .WithExistingStorageAccount(app2.StorageAccount)
-                        .DefineSourceControl()
-                            .WithPublicGitRepository("https://github.com/jianghaolu/square-function-app-sample")
-                            .WithBranch("master")
-                            .Attach()
-                        .Create();
+                var function3Collection = webSite.GetSiteFunctions();
+                var function3Data = new FunctionEnvelopeData()
+                {
+                };
+                var function3_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app3Name, function3Data);
+                var function3 = function3_lro.Value;
 
-                Utilities.Log("Created function app " + app3.Name);
-                Utilities.Print(app3);
+                Utilities.Log("Created function app " + function3.Data.Name);
+                Utilities.Print(function3);
 
                 // warm up
                 Utilities.Log("Warming up " + app3Url + "/api/square...");
                 Utilities.PostAddress("http://" + app3Url + "/api/square", "825");
-                SdkContext.DelayProvider.Delay(5000);
+                Thread.Sleep(5000);
                 Utilities.Log("CURLing " + app3Url + "/api/square...");
                 Utilities.Log("Square of 825 is " + Utilities.PostAddress("http://" + app3Url + "/api/square", "825"));
 
@@ -171,26 +179,20 @@ namespace ManageFunctionAppSourceControl
                 // Create a 4th function app with a personal GitHub repo and turn on continuous integration
 
                 Utilities.Log("Creating another function app " + app4Name + "...");
-                IFunctionApp app4 = azure.AppServices.FunctionApps
-                        .Define(app4Name)
-                        .WithExistingAppServicePlan(plan)
-                        .WithExistingResourceGroup(rgName)
-                        .WithExistingStorageAccount(app3.StorageAccount)
-                        // Uncomment the following lines to turn on 4th scenario
-                        //.DefineSourceControl()
-                        //    .WithContinuouslyIntegratedGitHubRepository("username", "reponame")
-                        //    .WithBranch("master")
-                        //    .WithGitHubAccessToken("YOUR GITHUB PERSONAL TOKEN")
-                        //    .Attach()
-                        .Create();
+                var function4Collection = webSite.GetSiteFunctions();
+                var function4Data = new FunctionEnvelopeData()
+                {
+                };
+                var function4_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app3Name, function3Data);
+                var function4 = function3_lro.Value;
 
-                Utilities.Log("Created function app " + app4.Name);
-                Utilities.Print(app4);
+                Utilities.Log("Created function app " + function4.Data.Name);
+                Utilities.Print(function4);
 
                 // warm up
                 Utilities.Log("Warming up " + app4Url + "...");
                 Utilities.CheckAddress("http://" + app4Url);
-                SdkContext.DelayProvider.Delay(5000);
+                Thread.Sleep(5000);
                 Utilities.Log("CURLing " + app4Url + "...");
                 Utilities.Log(Utilities.CheckAddress("http://" + app4Url));
 
@@ -198,26 +200,29 @@ namespace ManageFunctionAppSourceControl
                 // Create a 5th function app with web deploy
 
                 Utilities.Log("Creating another function app " + app5Name + "...");
-                IFunctionApp app5 = azure.AppServices.FunctionApps
-                    .Define(app5Name)
-                    .WithExistingAppServicePlan(plan)
-                    .WithExistingResourceGroup(rgName)
-                    .WithExistingStorageAccount(app3.StorageAccount)
-                    .Create();
+                var function5Collection = webSite.GetSiteFunctions();
+                var function5Data = new FunctionEnvelopeData()
+                {
+                };
+                var function5_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app3Name, function3Data);
+                var function5 = function3_lro.Value;
 
-                Utilities.Log("Created function app " + app5.Name);
-                Utilities.Print(app5);
+                Utilities.Log("Created function app " + function5.Data.Name);
+                Utilities.Print(function5);
 
                 Utilities.Log("Deploying to " + app5Name + " through web deploy...");
-                app5.Deploy()
-                    .WithPackageUri("https://github.com/Azure/azure-libraries-for-net/raw/master/Samples/Asset/square-function-app.zip")
-                    .WithExistingDeploymentsDeleted(true)
-                    .Execute();
+                var deployData = new FunctionEnvelopeData() 
+                {
+                    Files =
+                    {
+                    }
+                };
+                await function5.UpdateAsync(WaitUntil.Completed,deployData);
 
                 // warm up
                 Utilities.Log("Warming up " + app5Url + "/api/square...");
                 Utilities.PostAddress("http://" + app5Url + "/api/square", "925");
-                SdkContext.DelayProvider.Delay(5000);
+                Thread.Sleep(5000);
                 Utilities.Log("CURLing " + app5Url + "/api/square...");
                 Utilities.Log("Square of 925 is " + Utilities.PostAddress("http://" + app5Url + "/api/square", "925"));
             }
@@ -240,20 +245,23 @@ namespace ManageFunctionAppSourceControl
             }
         }
 
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             try
             {
                 //=================================================================
                 // Authenticate
-                var credentials = SdkContext.AzureCredentialsFactory.FromFile(Environment.GetEnvironmentVariable("AZURE_AUTH_LOCATION"));
-                var tokenCredential = new ClientCredential
-                var client = new ArmClient(null, "db1ab6f0-4769-4b27-930e-01e2ef9c123c");
+                var clientId = Environment.GetEnvironmentVariable("CLIENT_ID");
+                var clientSecret = Environment.GetEnvironmentVariable("CLIENT_SECRET");
+                var tenantId = Environment.GetEnvironmentVariable("TENANT_ID");
+                var subscription = Environment.GetEnvironmentVariable("SUBSCRIPTION_ID");
+                ClientSecretCredential credential = new ClientSecretCredential(tenantId, clientId, clientSecret);
+                ArmClient client = new ArmClient(credential, subscription);
 
                 // Print selected subscription
-                Utilities.Log("Selected subscription: " + azure.SubscriptionId);
+                Utilities.Log("Selected subscription: " + client.GetSubscriptions().Id);
 
-                RunSample(client);
+                await RunSample(client);
             }
             catch (Exception e)
             {
