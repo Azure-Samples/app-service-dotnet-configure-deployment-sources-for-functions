@@ -1,25 +1,16 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See License.txt in the project root for license information.
 
-using Azure.ResourceManager.KeyVault;
-using Azure.ResourceManager.AppService;
-using Azure.ResourceManager.CosmosDB;
-using Azure.ResourceManager.CosmosDB.Models;
-using Azure.ResourceManager;
-using Azure.Core;
 using Azure;
-using Azure.ResourceManager.Resources.Models;
+using Azure.Core;
 using Azure.Identity;
-using Azure.ResourceManager.Samples.Common;
+using Azure.ResourceManager;
+using Azure.ResourceManager.AppService;
 using Azure.ResourceManager.Resources;
+using Azure.ResourceManager.Samples.Common;
 using System;
-using System.Threading;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net.Http;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ManageFunctionAppSourceControl
@@ -75,11 +66,11 @@ namespace ManageFunctionAppSourceControl
                 var webSite_lro =await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, appName, webSiteData);
                 var webSite = webSite_lro.Value;
 
-                var planCollection = resourceGroup.GetWebSites();
+                var planCollection = resourceGroup.GetAppServicePlans();
                 var planData = new AppServicePlanData(region)
                 {
                 };
-                var planResource_lro = planCollection.CreateOrUpdate(Azure.WaitUntil.Completed, appName, webSiteData);
+                var planResource_lro = planCollection.CreateOrUpdate(Azure.WaitUntil.Completed, appName, planData);
                 var planResource = planResource_lro.Value;
 
                 SiteFunctionCollection functionAppCollection = webSite.GetSiteFunctions();
@@ -204,8 +195,8 @@ namespace ManageFunctionAppSourceControl
                 var function5Data = new FunctionEnvelopeData()
                 {
                 };
-                var function5_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app3Name, function3Data);
-                var function5 = function3_lro.Value;
+                var function5_lro = function5Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app5Name, function5Data);
+                var function5 = function5_lro.Value;
 
                 Utilities.Log("Created function app " + function5.Data.Name);
                 Utilities.Print(function5);
