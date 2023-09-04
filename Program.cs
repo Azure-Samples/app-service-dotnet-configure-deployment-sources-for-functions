@@ -6,6 +6,7 @@ using Azure.Core;
 using Azure.Identity;
 using Azure.ResourceManager;
 using Azure.ResourceManager.AppService;
+using Azure.ResourceManager.AppService.Models;
 using Azure.ResourceManager.Resources;
 using Azure.ResourceManager.Samples.Common;
 using System;
@@ -88,7 +89,11 @@ namespace ManageFunctionAppSourceControl
 
                 Utilities.Log("Deploying a function app to " + app1Name + " through FTP...");
 
-                var profile = webSite.Data.HostingEnvironmentProfile;
+                var csm = new CsmPublishingProfile()
+                {
+                    Format = PublishingProfileFormat.Ftp
+                };
+                var profile = await webSite.GetPublishingProfileXmlWithSecretsAsync(csm);
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "host.json"));
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "function.json"), "square/function.json");
                 Utilities.UploadFileToFunctionApp(profile, Path.Combine(Utilities.ProjectPath, "Asset", "square-function-app", "square", "index.js"), "square/index.js");
@@ -132,8 +137,12 @@ namespace ManageFunctionAppSourceControl
 
                 Utilities.Log("Deploying a local Tomcat source to " + app2Name + " through Git...");
 
-                profile = webSite.Data.HostingEnvironmentProfile;
-                Utilities.DeployByGit(profile, "square-function-app");
+                profile = await webSite.GetPublishingProfileXmlWithSecretsAsync(csm);
+                var extension = webSite.GetSiteExtension();
+                var deploy_lro = await extension.CreateOrUpdateAsync(WaitUntil.Completed, new WebAppMSDeploy()
+                {
+                });
+                var deploy = deploy_lro.Value;
 
                 Utilities.Log("Deployment to function app " + webSite2.Data.Name + " completed");
                 Utilities.Print(webSite2);
