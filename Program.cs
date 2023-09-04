@@ -183,7 +183,7 @@ namespace ManageFunctionAppSourceControl
                 var function4Data = new FunctionEnvelopeData()
                 {
                 };
-                var function4_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app3Name, function3Data);
+                var function4_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app4Name, function3Data);
                 var function4 = function3_lro.Value;
 
                 Utilities.Log("Created function app " + function4.Data.Name);
@@ -211,13 +211,12 @@ namespace ManageFunctionAppSourceControl
                 Utilities.Print(function5);
 
                 Utilities.Log("Deploying to " + app5Name + " through web deploy...");
-                var deployData = new FunctionEnvelopeData() 
+                var extension2 = webSite.GetSiteExtension();
+                var deploy2_lro = await extension.CreateOrUpdateAsync(WaitUntil.Completed, new WebAppMSDeploy()
                 {
-                    Files =
-                    {
-                    }
-                };
-                await function5.UpdateAsync(WaitUntil.Completed,deployData);
+                    PackageUri = new Uri("https://github.com/Azure/azure-libraries-for-net/raw/master/Samples/Asset/square-function-app.zip"),
+                });
+                var deploy2 = deploy2_lro.Value;
 
                 // warm up
                 Utilities.Log("Warming up " + app5Url + "/api/square...");
