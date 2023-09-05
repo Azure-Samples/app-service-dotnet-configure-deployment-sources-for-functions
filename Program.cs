@@ -13,6 +13,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace ManageFunctionAppSourceControl
 {
@@ -71,14 +72,14 @@ namespace ManageFunctionAppSourceControl
                 var planData = new AppServicePlanData(region)
                 {
                 };
-                var planResource_lro = planCollection.CreateOrUpdate(Azure.WaitUntil.Completed, appName, planData);
+                var planResource_lro =await planCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, appName, planData);
                 var planResource = planResource_lro.Value;
 
                 SiteFunctionCollection functionAppCollection = webSite.GetSiteFunctions();
                 var functionData = new FunctionEnvelopeData()
                 {
                 };
-                var funtion_lro = functionAppCollection.CreateOrUpdate(Azure.WaitUntil.Completed, app1Name, functionData);
+                var funtion_lro =await functionAppCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app1Name, functionData);
                 var function = funtion_lro.Value;
 
                 Utilities.Log("Created function app " + function.Data.Name);
@@ -126,7 +127,7 @@ namespace ManageFunctionAppSourceControl
                     AppServicePlanId = planCollection.Id,
                     IsStorageAccountRequired = true,
                 };
-                var webSite2_lro = webSiteCollection.CreateOrUpdate(Azure.WaitUntil.Completed, app2Name, webSiteData);
+                var webSite2_lro = await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app2Name, webSiteData);
                 var webSite2 = webSite_lro.Value;
 
                 Utilities.Log("Created function app " + webSite2.Data.Name);
@@ -137,12 +138,17 @@ namespace ManageFunctionAppSourceControl
 
                 Utilities.Log("Deploying a local Tomcat source to " + app2Name + " through Git...");
 
-                profile = await webSite.GetPublishingProfileXmlWithSecretsAsync(csm);
-                var extension = webSite.GetSiteExtension();
-                var deploy_lro = await extension.CreateOrUpdateAsync(WaitUntil.Completed, new WebAppMSDeploy()
-                {
-                });
-                var deploy = deploy_lro.Value;
+                var reader = new StreamReader(profile);
+                var content = reader.ReadToEnd();
+                XmlDocument xmlDoc = new XmlDocument();
+                xmlDoc.LoadXml(content);
+                XmlNodeList gitUrl = xmlDoc.GetElementsByTagName("publishUrl");
+                string gitUrlString = gitUrl[0].InnerText;
+                XmlNodeList userName = xmlDoc.GetElementsByTagName("userName");
+                string userNameString = userName[0].InnerText;
+                XmlNodeList password = xmlDoc.GetElementsByTagName("userPWD");
+                string passwordString = password[0].InnerText;
+                Utilities.DeployByGit(userNameString, passwordString, gitUrlString, "azure-samples-appservice-helloworld");
 
                 Utilities.Log("Deployment to function app " + webSite2.Data.Name + " completed");
                 Utilities.Print(webSite2);
@@ -162,7 +168,7 @@ namespace ManageFunctionAppSourceControl
                 var function3Data = new FunctionEnvelopeData()
                 {
                 };
-                var function3_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app3Name, function3Data);
+                var function3_lro = await function3Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app3Name, function3Data);
                 var function3 = function3_lro.Value;
 
                 Utilities.Log("Created function app " + function3.Data.Name);
@@ -183,7 +189,7 @@ namespace ManageFunctionAppSourceControl
                 var function4Data = new FunctionEnvelopeData()
                 {
                 };
-                var function4_lro = function3Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app4Name, function3Data);
+                var function4_lro = await function3Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app4Name, function3Data);
                 var function4 = function3_lro.Value;
 
                 Utilities.Log("Created function app " + function4.Data.Name);
@@ -204,7 +210,7 @@ namespace ManageFunctionAppSourceControl
                 var function5Data = new FunctionEnvelopeData()
                 {
                 };
-                var function5_lro = function5Collection.CreateOrUpdate(Azure.WaitUntil.Completed, app5Name, function5Data);
+                var function5_lro = await function5Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app5Name, function5Data);
                 var function5 = function5_lro.Value;
 
                 Utilities.Log("Created function app " + function5.Data.Name);
@@ -212,7 +218,7 @@ namespace ManageFunctionAppSourceControl
 
                 Utilities.Log("Deploying to " + app5Name + " through web deploy...");
                 var extension2 = webSite.GetSiteExtension();
-                var deploy2_lro = await extension.CreateOrUpdateAsync(WaitUntil.Completed, new WebAppMSDeploy()
+                var deploy2_lro = await extension2.CreateOrUpdateAsync(WaitUntil.Completed, new WebAppMSDeploy()
                 {
                     PackageUri = new Uri("https://github.com/Azure/azure-libraries-for-net/raw/master/Samples/Asset/square-function-app.zip"),
                 });
