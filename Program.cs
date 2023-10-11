@@ -40,6 +40,11 @@ namespace ManageFunctionAppSourceControl
             string app3Name       = Utilities.CreateRandomName("webapp3-");
             string app4Name       = Utilities.CreateRandomName("webapp4-");
             string app5Name       = Utilities.CreateRandomName("webapp5-");
+            string function1Name = Utilities.CreateRandomName("function1-");
+            string function2Name = Utilities.CreateRandomName("function2-");
+            string function3Name = Utilities.CreateRandomName("function3-");
+            string function4Name = Utilities.CreateRandomName("function4-");
+            string function5Name = Utilities.CreateRandomName("function5-");
             string app1Url        = app1Name + suffix;
             string app2Url        = app2Name + suffix;
             string app3Url        = app3Name + suffix;
@@ -74,7 +79,7 @@ namespace ManageFunctionAppSourceControl
                 var functionData = new FunctionEnvelopeData()
                 {
                 };
-                var funtion_lro =await functionAppCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app1Name, functionData);
+                var funtion_lro =await functionAppCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, function1Name, functionData);
                 var function = funtion_lro.Value;
 
                 Utilities.Log("Created function app " + function.Data.Name);
@@ -127,8 +132,8 @@ namespace ManageFunctionAppSourceControl
                 var function2Data = new FunctionEnvelopeData()
                 {
                 };
-                var funtion2_lro = await functionApp2Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app1Name, functionData);
-                var function2 = funtion_lro.Value;
+                var funtion2_lro = await functionApp2Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, function2Name, function2Data);
+                var function2 = funtion2_lro.Value;
 
                 Utilities.Log("Created function app " + function2.Data.Name);
                 Utilities.Print(function2);
@@ -187,7 +192,7 @@ namespace ManageFunctionAppSourceControl
                 var function3Data = new FunctionEnvelopeData()
                 {
                 };
-                var function3_lro = await function3Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app3Name, function3Data);
+                var function3_lro = await function3Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, function3Name, function3Data);
                 var function3 = function3_lro.Value;
 
                 Utilities.Log("Created function app " + function3.Data.Name);
@@ -212,7 +217,7 @@ namespace ManageFunctionAppSourceControl
                     },
                     AppServicePlanId = planCollection.Id,
                 };
-                var webSite4_lro = await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app4Name, webSite4Data);
+                var webSite4_lro = await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, function4Name, webSite4Data);
                 var webSite4 = webSite4_lro.Value;
                 var function4Collection = webSite4.GetSiteFunctions();
                 var function4Data = new FunctionEnvelopeData()
@@ -239,7 +244,7 @@ namespace ManageFunctionAppSourceControl
                 var function5Data = new FunctionEnvelopeData()
                 {
                 };
-                var function5_lro = await function5Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app5Name, function5Data);
+                var function5_lro = await function5Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, function5Name, function5Data);
                 var function5 = function5_lro.Value;
 
                 Utilities.Log("Created function app " + function5.Data.Name);
