@@ -59,11 +59,6 @@ namespace ManageFunctionAppSourceControl
                 var webSiteCollection = resourceGroup.GetWebSites();
                 var webSiteData = new WebSiteData(region)
                 {
-                    SiteConfig = new Azure.ResourceManager.AppService.Models.SiteConfigProperties()
-                    {
-                        WindowsFxVersion = "PricingTier.StandardS1",
-                        NetFrameworkVersion = "NetFrameworkVersion.V4_6",
-                    }
                 };
                 var webSite_lro =await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, appName, webSiteData);
                 var webSite = webSite_lro.Value;
@@ -119,19 +114,24 @@ namespace ManageFunctionAppSourceControl
                 var webSite2Collection = resourceGroup.GetWebSites();
                 var webSite2Data = new WebSiteData(region)
                 {
-                    SiteConfig = new Azure.ResourceManager.AppService.Models.SiteConfigProperties()
+                    SiteConfig = new SiteConfigProperties()
                     {
-                        WindowsFxVersion = "PricingTier.StandardS1",
-                        NetFrameworkVersion = "NetFrameworkVersion.V4_6",
+                        AzureStorageAccounts = webSite.Data.SiteConfig.AzureStorageAccounts,
                     },
                     AppServicePlanId = planCollection.Id,
                     IsStorageAccountRequired = true,
                 };
-                var webSite2_lro = await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app2Name, webSiteData);
-                var webSite2 = webSite_lro.Value;
+                var webSite2_lro = await webSite2Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app2Name, webSite2Data);
+                var webSite2 = webSite2_lro.Value;
+                SiteFunctionCollection functionApp2Collection = webSite.GetSiteFunctions();
+                var function2Data = new FunctionEnvelopeData()
+                {
+                };
+                var funtion2_lro = await functionApp2Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app1Name, functionData);
+                var function2 = funtion_lro.Value;
 
-                Utilities.Log("Created function app " + webSite2.Data.Name);
-                Utilities.Print(webSite2);
+                Utilities.Log("Created function app " + function2.Data.Name);
+                Utilities.Print(function2);
 
                 //============================================================
                 // Deploy to app 2 through local Git
@@ -164,7 +164,26 @@ namespace ManageFunctionAppSourceControl
                 // Create a 3rd function app with a public GitHub repo in Azure-Samples
 
                 Utilities.Log("Creating another function app " + app3Name + "...");
-                var function3Collection = webSite.GetSiteFunctions();
+                var webSite3Data = new WebSiteData(region)
+                {
+                    SiteConfig = new SiteConfigProperties()
+                    {
+                        AzureStorageAccounts = webSite.Data.SiteConfig.AzureStorageAccounts,
+                    },
+                    AppServicePlanId = planCollection.Id,
+                };
+                var publicRepodata = new SiteSourceControlData()
+                {
+                    RepoUri = new Uri("https://github.com/jianghaolu/square-function-app-sample"),
+                    Branch = "master",
+                    //IsManualIntegration = true,
+                    //IsMercurial = false,
+                };
+                var webSite3_lro = await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app3Name, webSite3Data);
+                var webSite3 = webSite3_lro.Value;
+                var container = webSite3.GetWebSiteSourceControl();
+                var sourceControl = (await container.CreateOrUpdateAsync(Azure.WaitUntil.Completed, publicRepodata)).Value;
+                var function3Collection = webSite3.GetSiteFunctions();
                 var function3Data = new FunctionEnvelopeData()
                 {
                 };
@@ -185,12 +204,22 @@ namespace ManageFunctionAppSourceControl
                 // Create a 4th function app with a personal GitHub repo and turn on continuous integration
 
                 Utilities.Log("Creating another function app " + app4Name + "...");
-                var function4Collection = webSite.GetSiteFunctions();
+                var webSite4Data = new WebSiteData(region)
+                {
+                    SiteConfig = new SiteConfigProperties()
+                    {
+                        AzureStorageAccounts = webSite.Data.SiteConfig.AzureStorageAccounts,
+                    },
+                    AppServicePlanId = planCollection.Id,
+                };
+                var webSite4_lro = await webSiteCollection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app4Name, webSite4Data);
+                var webSite4 = webSite4_lro.Value;
+                var function4Collection = webSite4.GetSiteFunctions();
                 var function4Data = new FunctionEnvelopeData()
                 {
                 };
-                var function4_lro = await function3Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app4Name, function3Data);
-                var function4 = function3_lro.Value;
+                var function4_lro = await function4Collection.CreateOrUpdateAsync(Azure.WaitUntil.Completed, app4Name, function4Data);
+                var function4 = function4_lro.Value;
 
                 Utilities.Log("Created function app " + function4.Data.Name);
                 Utilities.Print(function4);
